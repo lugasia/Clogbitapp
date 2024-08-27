@@ -1,0 +1,6 @@
+altgraph==0.17.2
+future==0.18.2 
+gunicorn==23.0.0
+macholib==1.15.2
+packaging==24.1
+six==1.15.0

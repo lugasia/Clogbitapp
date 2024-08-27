@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Tracker</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        function TimeTracker() {
+            const [employee, setEmployee] = React.useState("");
+            const [branch, setBranch] = React.useState("");
+            const [isClockIn, setIsClockIn] = React.useState(true);
+            const [clockInTime, setClockInTime] = React.useState(null);
+            const [clockOutTime, setClockOutTime] = React.useState(null);
+            const [showResults, setShowResults] = React.useState(false);
+            const [sendSuccess, setSendSuccess] = React.useState(false);
+            const [showAllResults, setShowAllResults] = React.useState(false);
+            const [results, setResults] = React.useState([]);
+
+            React.useEffect(() => {
+                const storedData = localStorage.getItem('timeTrackerData');
+                if (storedData) {
+                    setResults(JSON.parse(storedData));
+                }
+            }, []);
+
+            const handleClockInOut = () => {
+                if (isClockIn) {
+                    setClockInTime(new Date());
+                    setIsClockIn(false);
+                } else {
+                    const outTime = new Date();
+                    setClockOutTime(outTime);
+                    setShowResults(true);
+                    setIsClockIn(true);
+                    
+                    const newEntry = {
+                        employee: employee === 'jane' ? 'Jane Smith' : employee === 'john' ? 'John Doe' : 'Alice Johnson',
+                        branch: branch === 'marketing' ? 'Marketing Department' : branch === 'sales' ? 'Sales Department' : 'IT Department',
+                        date: outTime.toLocaleDateString(),
+                        timeIn: formatTime(clockInTime),
+                        timeOut: formatTime(outTime),
+                        duration: calculateDuration(clockInTime, outTime)
+                    };
+
+                    const updatedResults = [...results, newEntry];
+                    setResults(updatedResults);
+                    localStorage.setItem('timeTrackerData', JSON.stringify(updatedResults));
+
+                    setSendSuccess(true);
+                    setTimeout(() => setSendSuccess(false), 3000);
+                }
+            };
+
+            const calculateDuration = (start, end) => {
+                if (start && end) {
+                    const diff = end.getTime() - start.getTime();
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                }
+                return "00:00";
+            };
+
+            const formatTime = (date) => {
+                return date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+            };
+
+            return (
+                <div className="space-y-4 p-4">
+                    <div className="bg-white shadow-md rounded-lg p-6 max-w-md mx-auto">
+                        <h2 className="text-2xl font-bold text-center mb-4">Time Tracker</h2>
+                        <div className="space-y-4">
+                            <select 
+                                className="w-full p-2 border rounded"
+                                onChange={(e) => setEmployee(e.target.value)}
+                                value={employee}
+                            >
+                                <option value="">Select Employee</option>
+                                <option value="jane">Jane Smith</option>
+                                <option value="john">John Doe</option>
+                                <option value="alice">Alice Johnson</option>
+                            </select>
+
+                            <select 
+                                className="w-full p-2 border rounded"
+                                onChange={(e) => setBranch(e.target.value)}
+                                value={branch}
+                            >
+                                <option value="">Select Branch</option>
+                                <option value="marketing">Marketing Department</option>
+                                <option value="sales">Sales Department</option>
+                                <option value="it">IT Department</option>
+                            </select>
+
+                            <button 
+                                onClick={handleClockInOut} 
+                                className={`w-full p-2 text-white rounded ${isClockIn ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+                                disabled={!employee || !branch}
+                            >
+                                {isClockIn ? 'Clock In' : 'Clock Out'}
+                            </button>
+
+                            {showResults && (
+                                <div className="mt-4 p-4 bg-gray-100 rounded-md">
+                                    <h3 className="font-semibold mb-2">Shift Summary:</h3>
+                                    <p>Employee: {employee === 'jane' ? 'Jane Smith' : employee === 'john' ? 'John Doe' : 'Alice Johnson'}</p>
+                                    <p>Branch: {branch === 'marketing' ? 'Marketing Department' : branch === 'sales' ? 'Sales Department' : 'IT Department'}</p>
+                                    <p>Date: {clockOutTime.toLocaleDateString()}</p>
+                                    <p>Time In: {formatTime(clockInTime)}</p>
+                                    <p>Time Out: {formatTime(clockOutTime)}</p>
+                                    <p>Duration: {calculateDuration(clockInTime, clockOutTime)}</p>
+                                </div>
+                            )}
+
+                            {sendSuccess && (
+                                <div className="mt-4 p-4 bg-green-100 text-green-700 rounded-md">
+                                    <p className="font-semibold">Success</p>
+                                    <p>Clock-out data has been successfully recorded in the results sheet.</p>
+                                </div>
+                            )}
+
+                            <button 
+                                onClick={() => setShowAllResults(!showAllResults)} 
+                                className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                                {showAllResults ? 'Hide All Results' : 'Show All Results'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {showAllResults && (
+                        <div className="bg-white shadow-md rounded-lg p-6 max-w-4xl mx-auto mt-8">
+                            <h2 className="text-2xl font-bold mb-4">Results Sheet</h2>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full bg-white">
+                                    <thead className="bg-gray-100">
+                                        <tr>
+                                            <th className="py-2 px-4 border-b">Employee</th>
+                                            <th className="py-2 px-4 border-b">Branch</th>
+                                            <th className="py-2 px-4 border-b">Date</th>
+                                            <th className="py-2 px-4 border-b">Time In</th>
+                                            <th className="py-2 px-4 border-b">Time Out</th>
+                                            <th className="py-2 px-4 border-b">Duration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {results.map((result, index) => (
+                                            <tr key={index}>
+                                                <td className="py-2 px-4 border-b">{result.employee}</td>
+                                                <td className="py-2 px-4 border-b">{result.branch}</td>
+                                                <td className="py-2 px-4 border-b">{result.date}</td>
+                                                <td className="py-2 px-4 border-b">{result.timeIn}</td>
+                                                <td className="py-2 px-4 border-b">{result.timeOut}</td>
+                                                <td className="py-2 px-4 border-b">{result.duration}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<TimeTracker />, document.getElementById('root'));
+    </script>
+</body>
+</html>
